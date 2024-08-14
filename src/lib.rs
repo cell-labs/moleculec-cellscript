@@ -22,7 +22,7 @@ pub struct AppConfig {
 type RawAppConfig = (IntermediateFormat, clap::ArgMatches);
 
 pub fn build_commandline(format: IntermediateFormat) -> AppConfig {
-    let matches = clap::Command::new("moleculec-go")
+    let matches = clap::Command::new("moleculec-cellscript")
         .name("Moleculec Plugin")
         .about("Compiler plugin for molecule to generate code.")
         .version(clap::crate_version!())

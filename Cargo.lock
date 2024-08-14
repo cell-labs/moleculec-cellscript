@@ -222,7 +222,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "moleculec-go"
+name = "moleculec-cellscript"
 version = "0.1.11"
 dependencies = [
  "case",

@@ -1,10 +1,10 @@
 [package]
-name = "moleculec-go"
+name = "moleculec-cellscript"
 version = "0.1.11"
 authors = ["driftluo <driftluo@foxmail.com>"]
 edition = "2018"
 description = "Compiler plugin for moleculec."
-repository = "https://github.com/driftluo/moleculec-go"
+repository = "https://github.com/driftluo/moleculec-cellscript"
 keywords = ["molecule", "code-generation", "serialization"]
 categories = [
     "parser-implementations",

@@ -1,12 +1,12 @@
 ## molecule go plugin
 
-A plugin for the molecule serialization system to generate Go code.
+A plugin for the molecule serialization system to generate CellScript code.
 
 ### Use
 
 ```shell
-$ cargo install moleculec moleculec-go
-$ moleculec --language go --schema-file "your-schema-file" | gofmt > "your-go-file"
+$ cargo install moleculec moleculec-cellscript
+$ moleculec --language cellscript --schema-file "your-schema-file" | gofmt > "your-cellscript-file"
 ```
 
 ### Testset
@@ -17,6 +17,6 @@ you can run `make gen-test` to reproduce it.
 
 ## License
 
-Licensed under [MIT License].
+Licensed under [MIT License][MIT License].
 
 [MIT License]: LICENSE
