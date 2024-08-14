@@ -46,7 +46,7 @@ func {union_name}From{item_name}(v {item_name}) {union_name} {{
     return {union_name}{{itemID: {item_id}, inner: v.AsSlice()}}
 }}
 
-func (s *{union_name}) Into{item_name}() *{item_name} {{
+func (s *{union_name}) Into{item_name}() {item_name} {{
     switch s.ItemID() {{
         case {item_id}:
             return {item_name}FromSliceUnchecked(s.AsSlice())
@@ -87,7 +87,7 @@ func (s *{union_name}) Into{item_name}() *{item_name} {{
                 format!(
                     r#"
     case {id}:
-        return &{union_name}{{itemID: {id}, inner: s.inner[HeaderSizeUint:]}}
+        return {union_name}{{itemID: {id}, inner: s.inner[HeaderSizeUint:]}}
                 "#,
                     id = id,
                     union_name = union_name
@@ -104,7 +104,7 @@ func (s *{union_name}) Into{item_name}() *{item_name} {{
                     r#"
     case {id}:
         _, err := {item}FromSlice(innerSlice, compatible)
-        if err != nil {{
+        if err.NotNone() {{
             return nil, err
         }}
                 "#,
@@ -131,7 +131,7 @@ func (s *{union_name}) ItemName() string {{
 
         let to_union = format!(
             r#"
-func (s *{struct_name}) ToUnion() *{union_name} {{
+func (s *{struct_name}) ToUnion() {union_name} {{
     switch s.ItemID() {{
     {to_union_switch_iml}
     default:

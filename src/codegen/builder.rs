@@ -13,19 +13,19 @@ impl GenBuilder for ast::Option_ {
 
         let define = format!(
             r#"
-type {struct_name}Builder struct {{
+type {struct_name}Builder table {{
 	isNone bool
 	inner  {inner_type}
 }}
-func New{struct_name}Builder() *{struct_name}Builder {{
-	return &{struct_name}Builder{{isNone: true, inner: {inner_type}Default()}}
+func New{struct_name}Builder() {struct_name}Builder {{
+	return {struct_name}Builder{{isNone: true, inner: {inner_type}Default()}}
 }}
-func (s *{struct_name}Builder) Set(v {inner_type}) *{struct_name}Builder {{
+func (s {struct_name}Builder) Set(v {inner_type}) {struct_name}Builder {{
 	s.isNone = false
 	s.inner = v
 	return s
 }}
-func (s *{struct_name}Builder) Build() {struct_name} {{
+func (s {struct_name}Builder) Build() {struct_name} {{
 	var ret {struct_name}
 	if s.isNone {{
 		ret = {struct_name}{{inner: []byte{{}}}}
@@ -48,18 +48,18 @@ impl GenBuilder for ast::Union {
         let struct_name = self.name().to_camel();
         let define = format!(
             r#"
-type {struct_name}Builder struct {{
+type {struct_name}Builder table {{
 	inner  {struct_name}Union
 }}
-func New{struct_name}Builder() *{struct_name}Builder {{
+func New{struct_name}Builder() {struct_name}Builder {{
     v := {struct_name}Default()
-    return &{struct_name}Builder{{inner: *v.ToUnion()}}
+    return {struct_name}Builder{{inner: v.ToUnion()}}
 }}
-func (s *{struct_name}Builder) Set(v {struct_name}Union) *{struct_name}Builder {{
+func (s {struct_name}Builder) Set(v {struct_name}Union) {struct_name}Builder {{
 	s.inner = v
 	return s
 }}
-func (s *{struct_name}Builder) Build() {struct_name} {{
+func (s {struct_name}Builder) Build() {struct_name} {{
 	b := new(bytes.Buffer)
     b.Write(packNumber(s.inner.itemID))
     b.Write(s.inner.AsSlice())
@@ -86,15 +86,15 @@ impl GenBuilder for ast::Array {
 
         let define = format!(
             r#"
-type {struct_name}Builder struct {{
+type {struct_name}Builder table {{
 	inner [{item_count}]{inner_type}
 }}
 
-func New{struct_name}Builder() *{struct_name}Builder {{
-	return &{struct_name}Builder{{inner: [{item_count}]{inner_type}{{{new_default}}}}}
+func New{struct_name}Builder() {struct_name}Builder {{
+	return {struct_name}Builder{{inner: [{item_count}]{inner_type}{{{new_default}}}}}
 }}
 
-func (s *{struct_name}Builder) Build() {struct_name} {{
+func (s {struct_name}Builder) Build() {struct_name} {{
 	b := new(bytes.Buffer)
 	len := len(s.inner)
 	for i := 0; i < len; i++ {{
@@ -111,7 +111,7 @@ func (s *{struct_name}Builder) Build() {struct_name} {{
 
         let entire_setter = format!(
             r#"
-func (s *{struct_name}Builder) Set(v [{item_count}]{inner_type}) *{struct_name}Builder {{
+func (s {struct_name}Builder) Set(v [{item_count}]{inner_type}) {struct_name}Builder {{
 	s.inner = v
 	return s
 }}
@@ -124,7 +124,7 @@ func (s *{struct_name}Builder) Set(v [{item_count}]{inner_type}) *{struct_name}B
             .map(|index| {
                 format!(
                     r#"
-func (s *{struct_name}Builder) Nth{index}(v {inner_type}) *{struct_name}Builder {{
+func (s {struct_name}Builder) Nth{index}(v {inner_type}) {struct_name}Builder {{
 	s.inner[{index}] = v
 	return s
 }}
@@ -141,7 +141,7 @@ func (s *{struct_name}Builder) Nth{index}(v {inner_type}) *{struct_name}Builder 
     }
 }
 
-impl GenBuilder for ast::Struct {
+impl GenBuilder for ast::table {
     fn gen_builder(&self) -> String {
         let struct_name = self.name().to_camel();
 
@@ -161,7 +161,7 @@ impl GenBuilder for ast::Struct {
 
         let build = format!(
             r#"
-func (s *{struct_name}Builder) Build() {struct_name} {{
+func (s {struct_name}Builder) Build() {struct_name} {{
     b := new(bytes.Buffer)
     {fields_encode}
     return {struct_name}{{inner: b.Bytes()}}
@@ -186,7 +186,7 @@ impl GenBuilder for ast::FixVec {
 
         let build = format!(
             r#"
-func (s *{struct_name}Builder) Build() {struct_name} {{
+func (s {struct_name}Builder) Build() {struct_name} {{
     size := packNumber(Number(len(s.inner)))
 
     b := new(bytes.Buffer)
@@ -219,7 +219,7 @@ impl GenBuilder for ast::DynVec {
         let default = impl_default_for_vector(&struct_name, &inner_name);
         let build = format!(
             r#"
-func (s *{struct_name}Builder) Build() {struct_name} {{
+func (s {struct_name}Builder) Build() {struct_name} {{
     itemCount := len(s.inner)
 
     b := new(bytes.Buffer)
@@ -271,7 +271,7 @@ impl GenBuilder for ast::Table {
         let build = if self.fields().is_empty() {
             format!(
                 r#"
-func (s *{struct_name}Builder) Build() {struct_name} {{
+func (s {struct_name}Builder) Build() {struct_name} {{
     b := new(bytes.Buffer)
     b.Write(packNumber(Number(HeaderSizeUint)))
     return {struct_name}{{inner: b.Bytes()}}
@@ -301,7 +301,7 @@ func (s *{struct_name}Builder) Build() {struct_name} {{
 
             format!(
                 r#"
-func (s *{struct_name}Builder) Build() {struct_name} {{
+func (s {struct_name}Builder) Build() {struct_name} {{
     b := new(bytes.Buffer)
 
     totalSize := HeaderSizeUint * ({field_count} + 1)
@@ -342,7 +342,7 @@ fn def_builder_for_struct_or_table(struct_name: &str, inner: &[ast::FieldDecl]) 
 
     format!(
         r#"
-type {struct_name}Builder struct {{
+type {struct_name}Builder table {{
     {fields}
 }}
         "#,
@@ -367,8 +367,8 @@ fn impl_default_for_struct_or_table(struct_name: &str, inner: &[ast::FieldDecl])
         .join(",");
     format!(
         r#"
-func New{struct_name}Builder() *{struct_name}Builder {{
-	return &{struct_name}Builder{{ {each_field} }}
+func New{struct_name}Builder() {struct_name}Builder {{
+	return {struct_name}Builder{{ {each_field} }}
 }}
     "#,
         struct_name = struct_name,
@@ -385,7 +385,7 @@ fn impl_setters_for_struct_or_table(struct_name: &str, inner: &[ast::FieldDecl])
             let field_type = f.typ().name().to_camel();
             format!(
                 r#"
-func (s *{struct_name}Builder) {func_name}(v {field_type}) *{struct_name}Builder {{
+func (s {struct_name}Builder) {func_name}(v {field_type}) {struct_name}Builder {{
     s.{field_name} = v
     return s
 }}
@@ -408,15 +408,15 @@ pub(in super::super) fn impl_as_builder_for_struct_or_table(
         .iter()
         .map(|f| {
             let func_name = f.name().to_camel();
-            format!(".{func_name}(*s.{func_name}())", func_name = func_name)
+            format!(".{func_name}(s.{func_name}())", func_name = func_name)
         })
         .collect::<Vec<_>>()
         .join("");
     format!(
         r#"
-func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
+func (s {struct_name}) AsBuilder() {struct_name}Builder {{
     ret := New{struct_name}Builder(){each_field}
-    return *ret
+    return ret
 }}
         "#,
         struct_name = struct_name,
@@ -427,7 +427,7 @@ func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
 fn def_builder_for_vector(struct_name: &str, inner_name: &str) -> String {
     format!(
         r#"
-type {struct_name}Builder struct {{
+type {struct_name}Builder table {{
     inner []{inner_type}
 }}
     "#,
@@ -439,27 +439,27 @@ type {struct_name}Builder struct {{
 fn impl_setters_for_vector(struct_name: &str, inner_name: &str) -> String {
     format!(
         r#"
-func (s *{struct_name}Builder) Set(v []{inner_name}) *{struct_name}Builder {{
+func (s {struct_name}Builder) Set(v []{inner_name}) {struct_name}Builder {{
     s.inner = v
     return s
 }}
-func (s *{struct_name}Builder) Push(v {inner_name}) *{struct_name}Builder {{
+func (s {struct_name}Builder) Push(v {inner_name}) {struct_name}Builder {{
     s.inner = append(s.inner, v)
     return s
 }}
-func (s *{struct_name}Builder) Extend(iter []{inner_name}) *{struct_name}Builder {{
+func (s {struct_name}Builder) Extend(iter []{inner_name}) {struct_name}Builder {{
     for i:=0; i < len(iter); i++ {{
         s.inner = append(s.inner, iter[i])
     }}
     return s
 }}
-func (s *{struct_name}Builder) Replace(index uint, v {inner_name}) *{inner_name} {{
+func (s {struct_name}Builder) Replace(index uint, v {inner_name}) {inner_name} {{
     if uint(len(s.inner)) > index {{
         a := s.inner[index]
         s.inner[index] = v
-        return &a
+        return a
     }}
-    return nil
+    return {inner_name}{{}}
 }}
     "#,
         struct_name = struct_name,
@@ -470,8 +470,8 @@ func (s *{struct_name}Builder) Replace(index uint, v {inner_name}) *{inner_name}
 fn impl_default_for_vector(struct_name: &str, inner_name: &str) -> String {
     format!(
         r#"
-func New{struct_name}Builder() *{struct_name}Builder {{
-	return &{struct_name}Builder{{ []{inner_name}{{}} }}
+func New{struct_name}Builder() {struct_name}Builder {{
+	return {struct_name}Builder{{ []{inner_name}{{}} }}
 }}
         "#,
         struct_name = struct_name,
@@ -482,13 +482,13 @@ func New{struct_name}Builder() *{struct_name}Builder {{
 pub(in super::super) fn impl_as_builder_for_vector(struct_name: &str) -> String {
     format!(
         r#"
-func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
+func (s {struct_name}) AsBuilder() {struct_name}Builder {{
     size := s.ItemCount()
     t := New{struct_name}Builder()
     for i:=uint(0); i < size; i++ {{
-        t.Push(*s.Get(i))
+        t.Push(s.Get(i))
     }}
-    return *t
+    return t
 }}
         "#,
         struct_name = struct_name
