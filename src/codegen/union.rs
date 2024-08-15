@@ -105,7 +105,7 @@ func (s *{union_name}) Into{item_name}() {item_name} {{
     case {id}:
         _, err := {item}FromSlice(innerSlice, compatible)
         if err.NotNone() {{
-            return nil, err
+            return ret, err
         }}
                 "#,
                     id = id,
@@ -131,7 +131,7 @@ func (s *{union_name}) ItemName() string {{
 
         let to_union = format!(
             r#"
-func (s *{struct_name}) ToUnion() {union_name} {{
+func (s *{struct_name}) ToUnion() (ret {union_name}) {{
     switch s.ItemID() {{
     {to_union_switch_iml}
     default:

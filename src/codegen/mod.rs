@@ -51,11 +51,10 @@ func ByteFromSliceUnchecked(slice []byte) Byte {
 func (b *Byte) AsSlice() []byte {
     return b[0:]
 }
-func ByteFromSlice(slice []byte, _compatible bool) (Byte, error) {
-    if len(slice) != 1 {
-        return nil, errors.New("TotalSizeNotMatch")
+func ByteFromSlice(slice []byte, _compatible bool) (b Byte, e error) {
+    if len(slice) != uint32(1) {
+        return b, errors.New("TotalSizeNotMatch")
     }
-    var b Byte
     b[0] = slice[0]
     return b, errors.None()
 }

@@ -225,7 +225,7 @@ func (s {struct_name}Builder) Build() {struct_name} {{
     var b bytes.Buffer
 
     // Empty dyn vector, just return size's bytes
-    if itemCount == 0 {{
+    if itemCount == uint32(0) {{
         b.Write(packNumber(Number(HeaderSizeUint)))
         return {struct_name}{{inner: b.Bytes()}}
     }}
