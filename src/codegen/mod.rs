@@ -49,7 +49,7 @@ func ByteFromSliceUnchecked(slice []byte) *Byte {
     return b
 }
 func (b *Byte) AsSlice() []byte {
-    return b[:]
+    return b[0:]
 }
 func ByteFromSlice(slice []byte, _compatible bool) (Byte, error) {
     if len(slice) != 1 {
