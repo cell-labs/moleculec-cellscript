@@ -38,12 +38,12 @@ const HeaderSizeUint uint32 = 4
 // Byte is the primitive type
 type Byte [1]byte
 func NewByte(b byte) Byte {
-    return Byte([1]byte{b})
+    return [1]byte{b}
 }
 func ByteDefault() Byte {
-    return Byte([1]byte{0})
+    return [1]byte{0}
 }
-func ByteFromSliceUnchecked(slice []byte) *Byte {
+func ByteFromSliceUnchecked(slice []byte) Byte {
     var b Byte
     b[0] = slice[0]
     return b
@@ -57,7 +57,7 @@ func ByteFromSlice(slice []byte, _compatible bool) (Byte, error) {
     }
     var b Byte
     b[0] = slice[0]
-    return b, nil
+    return b, errors.None()
 }
 func unpackNumber(b []byte) Number {
     bytesBuffer := bytes.NewBuffer(b)

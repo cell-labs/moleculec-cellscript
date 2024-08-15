@@ -213,7 +213,7 @@ func (s {struct_name}) RawData() []byte {{
             writeln!(
                 writer,
                 r#"
-func (s {struct_name}) {func_name}() *{inner_type} {{
+func (s {struct_name}) {func_name}() {inner_type} {{
     ret := {inner_type}FromSliceUnchecked(s.inner[{start}:{end}])
     return ret
 }}
@@ -364,11 +364,11 @@ func (s {struct_name}) IsEmpty() bool {{
 }}
 // if {inner_type} is empty, index is out of bounds
 func (s {struct_name}) Get(index uint64) {inner_type} {{
-    var re *{inner_type}
+    var re {inner_type}
     if index < s.Len() {{
         start := uint64(HeaderSizeUint) + {item_size}*index
         end := start + {item_size}
-        re = {inner_type}FromSliceUnchecked(s.inner[start:end])
+        return {inner_type}FromSliceUnchecked(s.inner[start:end])
     }}
     return re
 }}
@@ -496,20 +496,20 @@ func (s {struct_name}) IsEmpty() bool {{
     return s.Len() == 0
 }}
 // if {inner_type} is empty, index is out of bounds
-func (s {struct_name}) Get(index uint64) *{inner_type} {{
-    var b *{inner_type}
+func (s {struct_name}) Get(index uint64) {inner_type} {{
     if index < s.Len() {{
         start_index := uint64(HeaderSizeUint) * (1 + index)
         start := unpackNumber(s.inner[start_index:])
 
         if index == s.Len()-1 {{
-            b = {inner_type}FromSliceUnchecked(s.inner[start:])
+            return {inner_type}FromSliceUnchecked(s.inner[start:])
         }} else {{
             end_index := start_index + uint64(HeaderSizeUint)
             end := unpackNumber(s.inner[end_index:])
-            b = {inner_type}FromSliceUnchecked(s.inner[start:end])
+            return {inner_type}FromSliceUnchecked(s.inner[start:end])
         }}
     }}
+    var b {inner_type}
     return b
 }}
             "#,

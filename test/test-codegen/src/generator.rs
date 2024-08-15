@@ -46,7 +46,7 @@ impl GenTest for types::Option_ {
 
             format!(
                 r#"item, _ := hex.DecodeString("{item_data}")
-x := New{name}Builder().Set(*{item_type}FromSliceUnchecked(item)).Build()
+x := New{name}Builder().Set({item_type}FromSliceUnchecked(item)).Build()
             "#,
                 name = name,
                 item_type = item_type,
@@ -89,7 +89,7 @@ impl GenTest for types::Union {
             let item_type = &item.typ;
             format!(
                 r#"item, _ := hex.DecodeString("{item_data}")
-x := New{name}Builder().Set({name}UnionFrom{item_type}(*{item_type}FromSliceUnchecked(item))).Build()
+x := New{name}Builder().Set({name}UnionFrom{item_type}({item_type}FromSliceUnchecked(item))).Build()
             "#,
                 name = name,
                 item_type = item_type.to_camel(),
@@ -145,7 +145,7 @@ impl GenTest for types::Array {
             let mut set_list = Vec::with_capacity(self.data.len());
             for index in self.data.keys() {
                 set_list.push(format!(
-                    r#".Nth{index}(*{item_type}FromSliceUnchecked(item{index}))"#,
+                    r#".Nth{index}({item_type}FromSliceUnchecked(item{index}))"#,
                     index = index,
                     item_type = item_type
                 ))
@@ -217,7 +217,7 @@ impl GenTest for types::StructOrTable {
             let mut set_list = Vec::with_capacity(self.data.len());
             for field in self.data.keys() {
                 set_list.push(format!(
-                    r#".{field_1}(*{item_type}FromSliceUnchecked({field}))"#,
+                    r#".{field_1}({item_type}FromSliceUnchecked({field}))"#,
                     field_1 = field.to_camel(),
                     field = field,
                     item_type = field_type_dict.get(field.as_str()).unwrap().to_camel()
@@ -288,7 +288,7 @@ impl GenTest for types::Vector {
                 .enumerate()
                 .map(|(index, _)| {
                     format!(
-                        r#".Push(*{item_type}FromSliceUnchecked(item{index}))"#,
+                        r#".Push({item_type}FromSliceUnchecked(item{index}))"#,
                         item_type = item_type,
                         index = index
                     )
