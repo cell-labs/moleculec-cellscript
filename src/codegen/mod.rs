@@ -44,7 +44,7 @@ func ByteDefault() Byte {
     return Byte([1]byte{0})
 }
 func ByteFromSliceUnchecked(slice []byte) *Byte {
-    b := new(Byte)
+    var b Byte
     b[0] = slice[0]
     return b
 }
@@ -55,7 +55,7 @@ func ByteFromSlice(slice []byte, _compatible bool) (Byte, error) {
     if len(slice) != 1 {
         return nil, errors.New("TotalSizeNotMatch")
     }
-    b := new(Byte)
+    var b Byte
     b[0] = slice[0]
     return b, nil
 }

@@ -13,7 +13,7 @@ impl GenBuilder for ast::Option_ {
 
         let define = format!(
             r#"
-type {struct_name}Builder table {{
+type {struct_name}Builder struct {{
 	isNone bool
 	inner  {inner_type}
 }}
@@ -48,7 +48,7 @@ impl GenBuilder for ast::Union {
         let struct_name = self.name().to_camel();
         let define = format!(
             r#"
-type {struct_name}Builder table {{
+type {struct_name}Builder struct {{
 	inner  {struct_name}Union
 }}
 func New{struct_name}Builder() {struct_name}Builder {{
@@ -60,7 +60,7 @@ func (s {struct_name}Builder) Set(v {struct_name}Union) {struct_name}Builder {{
 	return s
 }}
 func (s {struct_name}Builder) Build() {struct_name} {{
-	b := new(bytes.Buffer)
+	var b bytes.Buffer
     b.Write(packNumber(s.inner.itemID))
     b.Write(s.inner.AsSlice())
 
@@ -86,7 +86,7 @@ impl GenBuilder for ast::Array {
 
         let define = format!(
             r#"
-type {struct_name}Builder table {{
+type {struct_name}Builder struct {{
 	inner [{item_count}]{inner_type}
 }}
 
@@ -95,7 +95,7 @@ func New{struct_name}Builder() {struct_name}Builder {{
 }}
 
 func (s {struct_name}Builder) Build() {struct_name} {{
-	b := new(bytes.Buffer)
+	var b bytes.Buffer
 	len := len(s.inner)
 	for i := 0; i < len; i++ {{
 		b.Write(s.inner[i].AsSlice())
@@ -162,7 +162,7 @@ impl GenBuilder for ast::Struct {
         let build = format!(
             r#"
 func (s {struct_name}Builder) Build() {struct_name} {{
-    b := new(bytes.Buffer)
+    var b bytes.Buffer
     {fields_encode}
     return {struct_name}{{inner: b.Bytes()}}
 }}
@@ -189,7 +189,7 @@ impl GenBuilder for ast::FixVec {
 func (s {struct_name}Builder) Build() {struct_name} {{
     size := packNumber(Number(len(s.inner)))
 
-    b := new(bytes.Buffer)
+    var b bytes.Buffer
 
     b.Write(size)
     len := len(s.inner)
@@ -222,7 +222,7 @@ impl GenBuilder for ast::DynVec {
 func (s {struct_name}Builder) Build() {struct_name} {{
     itemCount := len(s.inner)
 
-    b := new(bytes.Buffer)
+    var b bytes.Buffer
 
     // Empty dyn vector, just return size's bytes
     if itemCount == 0 {{
@@ -272,7 +272,7 @@ impl GenBuilder for ast::Table {
             format!(
                 r#"
 func (s {struct_name}Builder) Build() {struct_name} {{
-    b := new(bytes.Buffer)
+    var b bytes.Buffer
     b.Write(packNumber(Number(HeaderSizeUint)))
     return {struct_name}{{inner: b.Bytes()}}
 }}
@@ -302,7 +302,7 @@ func (s {struct_name}Builder) Build() {struct_name} {{
             format!(
                 r#"
 func (s {struct_name}Builder) Build() {struct_name} {{
-    b := new(bytes.Buffer)
+    var b bytes.Buffer
 
     totalSize := HeaderSizeUint * ({field_count} + 1)
     offsets := make([]uint32, 0, {field_count})
@@ -342,7 +342,7 @@ fn def_builder_for_struct_or_table(struct_name: &str, inner: &[ast::FieldDecl]) 
 
     format!(
         r#"
-type {struct_name}Builder table {{
+type {struct_name}Builder struct {{
     {fields}
 }}
         "#,
@@ -427,7 +427,7 @@ func (s {struct_name}) AsBuilder() {struct_name}Builder {{
 fn def_builder_for_vector(struct_name: &str, inner_name: &str) -> String {
     format!(
         r#"
-type {struct_name}Builder table {{
+type {struct_name}Builder struct {{
     inner []{inner_type}
 }}
     "#,
@@ -453,13 +453,13 @@ func (s {struct_name}Builder) Extend(iter []{inner_name}) {struct_name}Builder {
     }}
     return s
 }}
-func (s {struct_name}Builder) Replace(index uint, v {inner_name}) {inner_name} {{
+func (s {struct_name}Builder) Replace(index uint, v {inner_name}) (ret {inner_name}) {{
     if uint(len(s.inner)) > index {{
         a := s.inner[index]
         s.inner[index] = v
         return a
     }}
-    return {inner_name}{{}}
+    return
 }}
     "#,
         struct_name = struct_name,
@@ -471,7 +471,7 @@ fn impl_default_for_vector(struct_name: &str, inner_name: &str) -> String {
     format!(
         r#"
 func New{struct_name}Builder() {struct_name}Builder {{
-	return {struct_name}Builder{{ []{inner_name}{{}} }}
+	return {struct_name}Builder{{ inner: []{inner_name}{{}} }}
 }}
         "#,
         struct_name = struct_name,
