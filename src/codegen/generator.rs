@@ -90,7 +90,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
 
         let impl_ = format!(
             r#"
-func (s {struct_name}) Into{inner_type}() (ret {inner_type}, error) {{
+func (s {struct_name}) Into{inner_type}() (ret {inner_type}, e error) {{
 	if s.IsNone() {{
 		return ret, errors.New("No data")
 	}}
@@ -129,7 +129,7 @@ impl Generator for ast::Union {
 
         let struct_constructor = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if uint32(sliceLen) < HeaderSizeUint {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
@@ -179,7 +179,7 @@ impl Generator for ast::Array {
 
         let impl_ = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if sliceLen != {total_size} {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa({total_size})}}, " ")
@@ -258,7 +258,7 @@ impl Generator for ast::Struct {
 
         let impl_ = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if sliceLen != {total_size} {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa({total_size})}}, " ")
@@ -283,7 +283,7 @@ func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, 
                 let end = offset;
                 let getter = format!(
                     r#"
-func (s {struct_name}) {func_name}() *{inner} {{
+func (s {struct_name}) {func_name}() {inner} {{
     ret := {inner}FromSliceUnchecked(s.inner[{start}:{end}])
     return ret
 }}
@@ -320,7 +320,7 @@ impl Generator for ast::FixVec {
 
         let constructor = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if sliceLen < int64(HeaderSizeUint) {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
@@ -363,7 +363,7 @@ func (s {struct_name}) IsEmpty() bool {{
     return s.Len() == 0
 }}
 // if {inner_type} is empty, index is out of bounds
-func (s {struct_name}) Get(index uint64) *{inner_type} {{
+func (s {struct_name}) Get(index uint64) {inner_type} {{
     var re *{inner_type}
     if index < s.Len() {{
         start := uint64(HeaderSizeUint) + {item_size}*index
@@ -406,7 +406,7 @@ impl Generator for ast::DynVec {
 
         let constructor = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
 
     if uint32(sliceLen) < HeaderSizeUint {{
@@ -535,11 +535,11 @@ impl Generator for ast::Table {
             format!(
                 r#"
 func New{struct_name}() {struct_name} {{
-    s := new(bytes.Buffer)
+    var s bytes.Buffer
     s.Write(packNumber(Number(HeaderSizeUint)))
     return {struct_name}{{inner: s.Bytes()}}
 }}
-func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if uint32(sliceLen) < HeaderSizeUint {{
         return ret, errors.New("HeaderIsBroken")
@@ -584,7 +584,7 @@ if err.NotNone() {{
 
             format!(
                 r#"
-func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if uint32(sliceLen) < HeaderSizeUint {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
