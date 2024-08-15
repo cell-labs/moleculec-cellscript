@@ -141,7 +141,7 @@ func (s {struct_name}Builder) Nth{index}(v {inner_type}) {struct_name}Builder {{
     }
 }
 
-impl GenBuilder for ast::table {
+impl GenBuilder for ast::Struct {
     fn gen_builder(&self) -> String {
         let struct_name = self.name().to_camel();
 
