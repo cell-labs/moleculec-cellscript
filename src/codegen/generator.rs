@@ -63,22 +63,22 @@ func {struct_name}Default() {struct_name} {{
 
 impl Generator for ast::Option_ {
     fn generate<W: io::Write>(&self, writer: &mut W) -> io::Result<()> {
-        writeln!(writer, "{}", self.gen_builder())?;
         self.common_generate(writer)?;
+        writeln!(writer, "{}", self.gen_builder())?;
 
         let struct_name = self.name().to_camel();
         let inner = self.item().typ().name().to_camel();
 
         let constructor = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e error) {{
     if len(slice) == 0 {{
-        return {struct_name}{{inner: slice}}, errors.None()
+        return ret, errors.None()
     }}
 
     _, err := {inner_type}FromSlice(slice, compatible)
     if err.NotNone() {{
-        return {struct_name}{{}}, err
+        return ret, err
     }}
     return {struct_name}{{inner: slice}}, errors.None()
 }}
@@ -90,9 +90,9 @@ func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error
 
         let impl_ = format!(
             r#"
-func (s {struct_name}) Into{inner_type}() ({inner_type}, error) {{
+func (s {struct_name}) Into{inner_type}() (ret {inner_type}, error) {{
 	if s.IsNone() {{
-		return {inner_type}{{}}, errors.New("No data")
+		return ret, errors.New("No data")
 	}}
 	return {inner_type}FromSliceUnchecked(s.AsSlice()), errors.None()
 }}
@@ -120,8 +120,8 @@ func (s {struct_name}) AsBuilder() {struct_name}Builder {{
 
 impl Generator for ast::Union {
     fn generate<W: io::Write>(&self, writer: &mut W) -> io::Result<()> {
-        writeln!(writer, "{}", self.gen_builder())?;
         self.common_generate(writer)?;
+        writeln!(writer, "{}", self.gen_builder())?;
         let struct_name = self.name().to_camel();
 
         let (union_impl, from_slice_switch_iml) = self.gen_union();
@@ -129,11 +129,11 @@ impl Generator for ast::Union {
 
         let struct_constructor = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, error) {{
     sliceLen := len(slice)
     if uint32(sliceLen) < HeaderSizeUint {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
     itemID := unpackNumber(slice)
     innerSlice := slice[HeaderSizeUint:]
@@ -141,7 +141,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error
     switch itemID {{
     {from_slice_switch_iml}
     default:
-        return {struct_name}{{}}, errors.New("UnknownItem, {struct_name}")
+        return ret, errors.New("UnknownItem, {struct_name}")
     }}
     return {struct_name}{{inner: slice}}, errors.None()
 }}
@@ -174,16 +174,16 @@ impl Generator for ast::Array {
         let item_count = self.item_count();
         let total_size = self.total_size();
 
-        writeln!(writer, "{}", self.gen_builder())?;
         self.common_generate(writer)?;
+        writeln!(writer, "{}", self.gen_builder())?;
 
         let impl_ = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, _compatible bool) ({struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, error) {{
     sliceLen := len(slice)
     if sliceLen != {total_size} {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa({total_size})}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
     return {struct_name}{{inner: slice}}, errors.None()
 }}
@@ -253,16 +253,16 @@ impl Generator for ast::Struct {
         let struct_name = self.name().to_camel();
         let total_size = self.total_size();
 
-        writeln!(writer, "{}", self.gen_builder())?;
         self.common_generate(writer)?;
+        writeln!(writer, "{}", self.gen_builder())?;
 
         let impl_ = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, _compatible bool) ({struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, error) {{
     sliceLen := len(slice)
     if sliceLen != {total_size} {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa({total_size})}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
     return {struct_name}{{inner: slice}}, errors.None()
 }}
@@ -315,29 +315,29 @@ impl Generator for ast::FixVec {
         let inner = self.item().typ().name().to_camel();
         let item_size = self.item_size();
 
-        writeln!(writer, "{}", self.gen_builder())?;
         self.common_generate(writer)?;
+        writeln!(writer, "{}", self.gen_builder())?;
 
         let constructor = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, _compatible bool) ({struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, error) {{
     sliceLen := len(slice)
     if sliceLen < int64(HeaderSizeUint) {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
     itemCount := unpackNumber(slice)
     if itemCount == 0 {{
         if sliceLen != int64(HeaderSizeUint) {{
             errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
-            return {struct_name}{{}}, errors.New(errMsg)
+            return ret, errors.New(errMsg)
         }}
         return {struct_name}{{inner: slice}}, errors.None()
     }}
     totalSize := int64(HeaderSizeUint) + int64({item_size}*itemCount)
     if sliceLen != totalSize {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(totalSize))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
     return {struct_name}{{inner: slice}}, errors.None()
 }}
@@ -401,23 +401,23 @@ impl Generator for ast::DynVec {
         let struct_name = self.name().to_camel();
         let inner = self.item().typ().name().to_camel();
 
-        writeln!(writer, "{}", self.gen_builder())?;
         self.common_generate(writer)?;
+        writeln!(writer, "{}", self.gen_builder())?;
 
         let constructor = format!(
             r#"
-func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, error) {{
     sliceLen := len(slice)
 
     if uint32(sliceLen) < HeaderSizeUint {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     totalSize := unpackNumber(slice)
     if Number(sliceLen) != totalSize {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(totalSize))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     if uint32(sliceLen) == HeaderSizeUint {{
@@ -426,18 +426,18 @@ func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error
 
     if uint32(sliceLen) < HeaderSizeUint*2 {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint*2))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     offsetFirst := unpackNumber(slice[HeaderSizeUint:])
     if uint32(offsetFirst)%HeaderSizeUint != 0 || uint32(offsetFirst) < HeaderSizeUint*2 {{
         errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}", strconv.Itoa(int64(offsetFirst%4)), "!= 0", strconv.Itoa(int64(offsetFirst)), "<", strconv.Itoa(int64(HeaderSizeUint*2))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     if sliceLen < int64(offsetFirst) {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(offsetFirst))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
     itemCount := uint32(offsetFirst)/HeaderSizeUint - 1
 
@@ -452,7 +452,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error
     for i := 0; i < len(offsets); i++ {{
         if i&1 != 0 && offsets[i-1] > offsets[i] {{
             errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}"}}, " ")
-            return {struct_name}{{}}, errors.New(errMsg)
+            return ret, errors.New(errMsg)
         }}
     }}
 
@@ -463,7 +463,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error
             _, err := {inner_type}FromSlice(slice[start:end], compatible)
 
             if err.NotNone() {{
-                return {struct_name}{{}}, err
+                return ret, err
             }}
         }}
     }}
@@ -528,8 +528,8 @@ impl Generator for ast::Table {
         let field_count = self.fields().len();
         let struct_name = self.name().to_camel();
 
-        writeln!(writer, "{}", self.gen_builder())?;
         self.common_generate(writer)?;
+        writeln!(writer, "{}", self.gen_builder())?;
 
         let constructor = if self.fields().is_empty() {
             format!(
@@ -539,19 +539,19 @@ func New{struct_name}() {struct_name} {{
     s.Write(packNumber(Number(HeaderSizeUint)))
     return {struct_name}{{inner: s.Bytes()}}
 }}
-func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, error) {{
     sliceLen := len(slice)
     if uint32(sliceLen) < HeaderSizeUint {{
-        return {struct_name}{{}}, errors.New("HeaderIsBroken")
+        return ret, errors.New("HeaderIsBroken")
     }}
 
     totalSize := unpackNumber(slice)
     if Number(sliceLen) != totalSize {{
-        return {struct_name}{{}}, errors.New("TotalSizeNotMatch")
+        return ret, errors.New("TotalSizeNotMatch")
     }}
 
     if uint32(sliceLen) > HeaderSizeUint && !compatible {{
-        return {struct_name}{{}}, errors.New("FieldCountNotMatch")
+        return ret, errors.New("FieldCountNotMatch")
     }}
     return {struct_name}{{inner: slice}}, errors.None()
 }}
@@ -571,7 +571,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error
                         r#"
 _, err = {field}FromSlice(slice[offsets[{start}]:offsets[{end}]], compatible)
 if err.NotNone() {{
-    return {struct_name}{{}}, err
+    return ret, err
 }}
                 "#,
                         field = field,
@@ -584,40 +584,40 @@ if err.NotNone() {{
 
             format!(
                 r#"
-func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error) {{
+func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, error) {{
     sliceLen := len(slice)
     if uint32(sliceLen) < HeaderSizeUint {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     totalSize := unpackNumber(slice)
     if Number(sliceLen) != totalSize {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(totalSize))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     if uint32(sliceLen) < HeaderSizeUint*2 {{
         errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint*2))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     offsetFirst := unpackNumber(slice[HeaderSizeUint:])
     if uint32(offsetFirst)%HeaderSizeUint != 0 || uint32(offsetFirst) < HeaderSizeUint*2 {{
         errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}", strconv.Itoa(int64(offsetFirst%4)), "!= 0", strconv.Itoa(int64(offsetFirst)), "<", strconv.Itoa(int64(HeaderSizeUint*2))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     if sliceLen < int64(offsetFirst) {{
         errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(offsetFirst))}}, " ")
-        return {struct_name}{{}}, errors.New(errMsg)
+        return ret, errors.New(errMsg)
     }}
 
     fieldCount := uint32(offsetFirst)/HeaderSizeUint - 1
     if fieldCount < {field_count} {{
-        return {struct_name}{{}}, errors.New("FieldCountNotMatch")
+        return ret, errors.New("FieldCountNotMatch")
     }} else if !compatible && fieldCount > {field_count} {{
-        return {struct_name}{{}}, errors.New("FieldCountNotMatch")
+        return ret, errors.New("FieldCountNotMatch")
     }}
 
     offsets := make([]uint32, fieldCount)
@@ -629,7 +629,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) ({struct_name}, error
 
     for i := 0; i < len(offsets); i++ {{
         if i&1 != 0 && offsets[i-1] > offsets[i] {{
-            return {struct_name}{{}}, errors.New("OffsetsNotMatch")
+            return ret, errors.New("OffsetsNotMatch")
         }}
     }}
 
