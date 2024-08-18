@@ -32,7 +32,7 @@ type {struct_name} struct {{
 func {struct_name}FromSliceUnchecked(slice []byte) {struct_name} {{
     return {struct_name}{{inner: slice}}
 }}
-func (s {struct_name}) AsSlice() []byte {{
+func (s *{struct_name}) AsSlice() []byte {{
     return s.inner
 }}
             "#,
@@ -90,19 +90,19 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
 
         let impl_ = format!(
             r#"
-func (s {struct_name}) Into{inner_type}() (ret {inner_type}, e error) {{
+func (s *{struct_name}) Into{inner_type}() (ret {inner_type}, e error) {{
 	if s.IsNone() {{
 		return ret, errors.New("No data")
 	}}
 	return {inner_type}FromSliceUnchecked(s.AsSlice()), errors.None()
 }}
-func (s {struct_name}) IsSome() bool {{
+func (s *{struct_name}) IsSome() bool {{
     return len(s.inner) != uint32(0)
 }}
-func (s {struct_name}) IsNone() bool {{
+func (s *{struct_name}) IsNone() bool {{
     return len(s.inner) == uint32(0)
 }}
-func (s {struct_name}) AsBuilder() {struct_name}Builder {{
+func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
     var ret = New{struct_name}Builder()
     if s.IsSome() {{
         ret.Set({inner_type}FromSliceUnchecked(s.AsSlice()))
@@ -153,10 +153,10 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
 
         let struct_impl = format!(
             r#"
-func (s {struct_name}) ItemID() Number {{
+func (s *{struct_name}) ItemID() Number {{
     return unpackNumber(s.inner)
 }}
-func (s {struct_name}) AsBuilder() {struct_name}Builder {{
+func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
     return New{struct_name}Builder().Set(s.ToUnion())
 }}
             "#,
@@ -197,7 +197,7 @@ func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, 
             writeln!(
                 writer,
                 r#"
-func (s {struct_name}) RawData() []byte {{
+func (s *{struct_name}) RawData() []byte {{
     return s.inner
 }}
             "#,
@@ -213,7 +213,7 @@ func (s {struct_name}) RawData() []byte {{
             writeln!(
                 writer,
                 r#"
-func (s {struct_name}) {func_name}() {inner_type} {{
+func (s *{struct_name}) {func_name}() {inner_type} {{
     ret := {inner_type}FromSliceUnchecked(s.inner[{start}:{end}])
     return ret
 }}
@@ -233,7 +233,7 @@ func (s {struct_name}) {func_name}() {inner_type} {{
 
         let as_builder = format!(
             r#"
-func (s {struct_name}) AsBuilder() {struct_name}Builder {{
+func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
 	t := New{struct_name}Builder()
 	{as_builder_internal}
 	return t
@@ -283,7 +283,7 @@ func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, 
                 let end = offset;
                 let getter = format!(
                     r#"
-func (s {struct_name}) {func_name}() {inner} {{
+func (s *{struct_name}) {func_name}() {inner} {{
     ret := {inner}FromSliceUnchecked(s.inner[{start}:{end}])
     return ret
 }}
@@ -349,21 +349,21 @@ func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, 
 
         let impl_ = format!(
             r#"
-func (s {struct_name}) TotalSize() uint64 {{
+func (s *{struct_name}) TotalSize() uint64 {{
     return uint64(HeaderSizeUint) + {item_size} * s.ItemCount()
 }}
-func (s {struct_name}) ItemCount() uint64 {{
+func (s *{struct_name}) ItemCount() uint64 {{
     number := uint64(unpackNumber(s.inner))
     return number
 }}
-func (s {struct_name}) Len() uint64 {{
+func (s *{struct_name}) Len() uint64 {{
     return s.ItemCount()
 }}
-func (s {struct_name}) IsEmpty() bool {{
+func (s *{struct_name}) IsEmpty() bool {{
     return s.Len() == 0
 }}
 // if {inner_type} is empty, index is out of bounds
-func (s {struct_name}) Get(index uint64) {inner_type} {{
+func (s *{struct_name}) Get(index uint64) {inner_type} {{
     var re {inner_type}
     if index < s.Len() {{
         start := uint64(HeaderSizeUint) + {item_size}*index
@@ -383,7 +383,7 @@ func (s {struct_name}) Get(index uint64) {inner_type} {{
             writeln!(
                 writer,
                 r#"
-func (s {struct_name}) RawData() []byte {{
+func (s *{struct_name}) RawData() []byte {{
     return s.inner[HeaderSizeUint:]
 }}
             "#,
@@ -478,10 +478,10 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
 
         let impl_ = format!(
             r#"
-func (s {struct_name}) TotalSize() uint64 {{
+func (s *{struct_name}) TotalSize() uint64 {{
     return uint64(unpackNumber(s.inner))
 }}
-func (s {struct_name}) ItemCount() uint64 {{
+func (s *{struct_name}) ItemCount() uint64 {{
     var number uint64 = 0
     if uint32(s.TotalSize()) == HeaderSizeUint {{
         return number
@@ -489,14 +489,14 @@ func (s {struct_name}) ItemCount() uint64 {{
     number = uint64(unpackNumber(s.inner[HeaderSizeUint:]))/4 - 1
     return number
 }}
-func (s {struct_name}) Len() uint64 {{
+func (s *{struct_name}) Len() uint64 {{
     return s.ItemCount()
 }}
-func (s {struct_name}) IsEmpty() bool {{
+func (s *{struct_name}) IsEmpty() bool {{
     return s.Len() == 0
 }}
 // if {inner_type} is empty, index is out of bounds
-func (s {struct_name}) Get(index uint64) {inner_type} {{
+func (s *{struct_name}) Get(index uint64) {inner_type} {{
     if index < s.Len() {{
         start_index := uint64(HeaderSizeUint) * (1 + index)
         start := unpackNumber(s.inner[start_index:])
@@ -648,10 +648,10 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
 
         let impl_ = format!(
             r#"
-func (s {struct_name}) TotalSize() uint64 {{
+func (s *{struct_name}) TotalSize() uint64 {{
     return uint64(unpackNumber(s.inner))
 }}
-func (s {struct_name}) FieldCount() uint64 {{
+func (s *{struct_name}) FieldCount() uint64 {{
     var number uint64 = 0
     if uint32(s.TotalSize()) == HeaderSizeUint {{
         return number
@@ -659,17 +659,17 @@ func (s {struct_name}) FieldCount() uint64 {{
     number = uint64(unpackNumber(s.inner[HeaderSizeUint:]))/4 - 1
     return number
 }}
-func (s {struct_name}) Len() uint64 {{
+func (s *{struct_name}) Len() uint64 {{
     return s.FieldCount()
 }}
-func (s {struct_name}) IsEmpty() bool {{
+func (s *{struct_name}) IsEmpty() bool {{
     return s.Len() == 0
 }}
-func (s {struct_name}) CountExtraFields() uint64 {{
+func (s *{struct_name}) CountExtraFields() uint64 {{
     return s.FieldCount() - {field_count}
 }}
 
-func (s {struct_name}) HasExtraFields() bool {{
+func (s *{struct_name}) HasExtraFields() bool {{
     return {field_count} != s.FieldCount()
 }}
             "#,
@@ -696,7 +696,7 @@ func (s {struct_name}) HasExtraFields() bool {{
                 if i == self.fields().len() - 1 {
                     format!(
                         r#"
-func (s {struct_name}) {func}() {inner} {{
+func (s *{struct_name}) {func}() {inner} {{
     var ret {inner}
     start := unpackNumber(s.inner[{start}:])
     if s.HasExtraFields() {{
@@ -719,7 +719,7 @@ func (s {struct_name}) {func}() {inner} {{
                 } else {
                     format!(
                         r#"
-func (s {struct_name}) {func}() {inner} {{
+func (s *{struct_name}) {func}() {inner} {{
     start := unpackNumber(s.inner[{start}:])
     end := unpackNumber(s.inner[{end}:])
     return {inner}FromSliceUnchecked({getter_stmt})
