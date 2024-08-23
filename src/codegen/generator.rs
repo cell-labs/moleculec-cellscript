@@ -327,7 +327,7 @@ func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, 
         return ret, errors.New(errMsg)
     }}
     itemCount := unpackNumber(slice)
-    if itemCount == 0 {{
+    if itemCount == uint32(0) {{
         if sliceLen != HeaderSizeUint {{
             errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
             return ret, errors.New(errMsg)
