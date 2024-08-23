@@ -97,7 +97,7 @@ func New{struct_name}Builder() {struct_name}Builder {{
 func (s *{struct_name}Builder) Build() {struct_name} {{
 	var b bytes.Buffer
 	len := len(s.inner)
-	for i := 0; i < len; i++ {{
+	for i := uint32(0); i < len; i++ {{
 		b.Write(s.inner[i].AsSlice())
 	}}
 	return {struct_name}{{inner: b.Bytes()}}
@@ -193,7 +193,7 @@ func (s *{struct_name}Builder) Build() {struct_name} {{
 
     b.Write(size)
     len := len(s.inner)
-    for i := 0; i < len; i++ {{
+    for i := uint32(0); i < len; i++ {{
         b.Write(s.inner[i].AsSlice())
     }}
 
@@ -242,11 +242,11 @@ func (s *{struct_name}Builder) Build() {struct_name} {{
 
     b.Write(packNumber(Number(totalSize)))
 
-    for i := 0; i < itemCount; i++ {{
+    for i := uint32(0); i < itemCount; i++ {{
         b.Write(packNumber(Number(offsets[i])))
     }}
 
-    for i := 0; i < itemCount; i++ {{
+    for i := uint32(0); i < itemCount; i++ {{
         b.Write(s.inner[i].AsSlice())
     }}
 
@@ -311,7 +311,7 @@ func (s *{struct_name}Builder) Build() {struct_name} {{
 
     b.Write(packNumber(Number(totalSize)))
 
-    for i := 0; i < len(offsets); i++ {{
+    for i := uint32(0); i < len(offsets); i++ {{
         b.Write(packNumber(Number(offsets[i])))
     }}
 

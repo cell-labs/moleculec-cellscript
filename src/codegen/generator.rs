@@ -443,7 +443,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
 
     offsets := make([]uint32, itemCount)
 
-    for i := 0; i < int64(itemCount); i++ {{
+    for i := 0; i < uint64(itemCount); i++ {{
         offsets[i] = uint32(unpackNumber(slice[HeaderSizeUint:][int64(HeaderSizeUint)*i:]))
     }}
 
@@ -456,7 +456,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
         }}
     }}
 
-    for i := 0; i < len(offsets); i++ {{
+    for i := uint32(0); i < len(offsets); i++ {{
         if i&1 != 0 {{
             start := offsets[i-1]
             end := offsets[i]
@@ -622,7 +622,7 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
 
     offsets := make([]uint32, fieldCount)
 
-    for i := 0; i < int64(fieldCount); i++ {{
+    for i := 0; i < uint64(fieldCount); i++ {{
         offsets[i] = uint32(unpackNumber(slice[HeaderSizeUint:][int64(HeaderSizeUint)*i:]))
     }}
     offsets = append(offsets, totalSize)
