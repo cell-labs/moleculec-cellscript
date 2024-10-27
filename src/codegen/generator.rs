@@ -90,17 +90,17 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
 
         let impl_ = format!(
             r#"
-func (s *{struct_name}) Into{inner_type}() (ret {inner_type}, e error) {{
-	if s.IsNone() {{
-		return ret, errors.New("No data")
-	}}
-	return {inner_type}FromSliceUnchecked(s.AsSlice()), errors.None()
-}}
 func (s *{struct_name}) IsSome() bool {{
     return len(s.inner) != uint32(0)
 }}
 func (s *{struct_name}) IsNone() bool {{
     return len(s.inner) == uint32(0)
+}}
+func (s *{struct_name}) Into{inner_type}() (ret {inner_type}, e error) {{
+	if s.IsNone() {{
+		return ret, errors.New("No data")
+	}}
+	return {inner_type}FromSliceUnchecked(s.AsSlice()), errors.None()
 }}
 func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
     var ret = New{struct_name}Builder()
@@ -131,8 +131,8 @@ impl Generator for ast::Union {
             r#"
 func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
-    if uint32(sliceLen) < HeaderSizeUint {{
-        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
+    if sliceLen < HeaderSizeUint {{
+        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "<", strconv.Itoa(uint64(HeaderSizeUint))}}, " ")
         return ret, errors.New(errMsg)
     }}
     itemID := unpackNumber(slice)
@@ -157,7 +157,9 @@ func (s *{struct_name}) ItemID() Number {{
     return unpackNumber(s.inner)
 }}
 func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
-    return New{struct_name}Builder().Set(s.ToUnion())
+    ret := New{struct_name}Builder()
+    ret.Set(s.ToUnion())
+    return ret
 }}
             "#,
             struct_name = struct_name
@@ -181,8 +183,8 @@ impl Generator for ast::Array {
             r#"
 func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
-    if sliceLen != {total_size} {{
-        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa({total_size})}}, " ")
+    if sliceLen != uint32({total_size}) {{
+        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "!=", strconv.Itoa({total_size})}}, " ")
         return ret, errors.New(errMsg)
     }}
     return {struct_name}{{inner: slice}}, errors.None()
@@ -261,7 +263,7 @@ impl Generator for ast::Struct {
 func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if sliceLen != uint32({total_size}) {{
-        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa({total_size})}}, " ")
+        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "!=", strconv.Itoa({total_size})}}, " ")
         return ret, errors.New(errMsg)
     }}
     return {struct_name}{{inner: slice}}, errors.None()
@@ -323,20 +325,20 @@ impl Generator for ast::FixVec {
 func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if sliceLen < HeaderSizeUint {{
-        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
+        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "<", strconv.Itoa(uint64(HeaderSizeUint))}}, " ")
         return ret, errors.New(errMsg)
     }}
     itemCount := unpackNumber(slice)
     if itemCount == uint32(0) {{
         if sliceLen != HeaderSizeUint {{
-            errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
+            errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "!=", strconv.Itoa(uint64(HeaderSizeUint))}}, " ")
             return ret, errors.New(errMsg)
         }}
         return {struct_name}{{inner: slice}}, errors.None()
     }}
-    totalSize := uint64(HeaderSizeUint) + uint64({item_size}*itemCount)
+    totalSize := uint64(HeaderSizeUint) + uint64(uint32({item_size})*itemCount)
     if uint64(sliceLen) != totalSize {{
-        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(totalSize))}}, " ")
+        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "!=", strconv.Itoa(uint64(totalSize))}}, " ")
         return ret, errors.New(errMsg)
     }}
     return {struct_name}{{inner: slice}}, errors.None()
@@ -349,12 +351,12 @@ func {struct_name}FromSlice(slice []byte, _compatible bool) (ret {struct_name}, 
 
         let impl_ = format!(
             r#"
-func (s *{struct_name}) TotalSize() uint64 {{
-    return uint64(HeaderSizeUint) + {item_size} * s.ItemCount()
-}}
 func (s *{struct_name}) ItemCount() uint64 {{
     number := uint64(unpackNumber(s.inner))
     return number
+}}
+func (s *{struct_name}) TotalSize() uint64 {{
+    return uint64(HeaderSizeUint) + {item_size} * s.ItemCount()
 }}
 func (s *{struct_name}) Len() uint64 {{
     return s.ItemCount()
@@ -410,13 +412,13 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
     sliceLen := len(slice)
 
     if sliceLen < HeaderSizeUint {{
-        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
+        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "<", strconv.Itoa(uint64(HeaderSizeUint))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
     totalSize := unpackNumber(slice)
     if sliceLen != totalSize {{
-        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(totalSize))}}, " ")
+        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "!=", strconv.Itoa(uint64(totalSize))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
@@ -424,40 +426,50 @@ func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e
         return {struct_name}{{inner: slice}}, errors.None()
     }}
 
-    if sliceLen < HeaderSizeUint*2 {{
-        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint*2))}}, " ")
+    if sliceLen < HeaderSizeUint*uint32(2) {{
+        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "<", strconv.Itoa(uint64(HeaderSizeUint*uint32(2)))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
     offsetFirst := unpackNumber(slice[HeaderSizeUint:])
-    if offsetFirst%HeaderSizeUint != 0 || uint32(offsetFirst) < HeaderSizeUint*2 {{
-        errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}", strconv.Itoa(int64(offsetFirst%4)), "!= 0", strconv.Itoa(int64(offsetFirst)), "<", strconv.Itoa(int64(HeaderSizeUint*2))}}, " ")
+	offsetSize := offsetFirst%HeaderSizeUint
+    if offsetSize != uint32(0) {{
+		errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}", strconv.Itoa(uint64(offsetFirst%uint32(4))), "!= 0", strconv.Itoa(uint64(offsetFirst)), "<", strconv.Itoa(uint64(HeaderSizeUint*uint32(2)))}}, " ")
+        return ret, errors.New(errMsg)
+    }}
+	headerSize := HeaderSizeUint*uint32(2)
+	if offsetFirst < headerSize {{
+		errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}", strconv.Itoa(uint64(offsetFirst%uint32(4))), "!= 0", strconv.Itoa(uint64(offsetFirst)), "<", strconv.Itoa(uint64(HeaderSizeUint*uint32(2)))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
-    if sliceLen < int64(offsetFirst) {{
-        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(offsetFirst))}}, " ")
+    if sliceLen < offsetFirst {{
+        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "<", strconv.Itoa(uint64(offsetFirst))}}, " ")
         return ret, errors.New(errMsg)
     }}
-    itemCount := uint32(offsetFirst)/HeaderSizeUint - 1
+    itemCount := uint32(offsetFirst)/HeaderSizeUint - uint32(1)
 
     offsets := make([]uint32, itemCount)
 
-    for i := 0; i < uint64(itemCount); i++ {{
-        offsets[i] = uint32(unpackNumber(slice[HeaderSizeUint:][int64(HeaderSizeUint)*i:]))
+    for i := uint32(0); i < itemCount; i++ {{
+        offsets[i] = uint32(unpackNumber(slice[HeaderSizeUint:][HeaderSizeUint*i:]))
     }}
 
     offsets = append(offsets, uint32(totalSize))
 
     for i := 0; i < uint64(len(offsets)); i++ {{
-        if i&1 != 0 && offsets[i-1] > offsets[i] {{
+        bit := i & 1
+		c1 := bit != 0
+		c2 := offsets[i-1] > offsets[i]
+		if c1 && c2 {{
             errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}"}}, " ")
             return ret, errors.New(errMsg)
         }}
     }}
 
-    for i := uint32(0); i < len(offsets); i++ {{
-        if i&1 != 0 {{
+    for i := 0; i < uint64(len(offsets)); i++ {{
+        bit := i & 1
+		if bit != 0 {{
             start := offsets[i-1]
             end := offsets[i]
             _, err := {inner_type}FromSlice(slice[start:end], compatible)
@@ -587,48 +599,57 @@ if err.NotNone() {{
 func {struct_name}FromSlice(slice []byte, compatible bool) (ret {struct_name}, e error) {{
     sliceLen := len(slice)
     if uint32(sliceLen) < HeaderSizeUint {{
-        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint))}}, " ")
+        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "<", strconv.Itoa(uint64(HeaderSizeUint))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
     totalSize := unpackNumber(slice)
     if Number(sliceLen) != totalSize {{
-        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "!=", strconv.Itoa(int64(totalSize))}}, " ")
+        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "!=", strconv.Itoa(uint64(totalSize))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
-    if uint32(sliceLen) < HeaderSizeUint*2 {{
-        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(HeaderSizeUint*2))}}, " ")
+    if uint32(sliceLen) < HeaderSizeUint*uint32(2) {{
+        errMsg := strings.Join([]string{{"TotalSizeNotMatch", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "<", strconv.Itoa(uint64(HeaderSizeUint*uint32(2)))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
     offsetFirst := unpackNumber(slice[HeaderSizeUint:])
-    if uint32(offsetFirst)%HeaderSizeUint != 0 || uint32(offsetFirst) < HeaderSizeUint*2 {{
-        errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}", strconv.Itoa(int64(offsetFirst%4)), "!= 0", strconv.Itoa(int64(offsetFirst)), "<", strconv.Itoa(int64(HeaderSizeUint*2))}}, " ")
+	offsetSize := offsetFirst%HeaderSizeUint
+    if offsetSize != uint32(0) {{
+		errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}", strconv.Itoa(uint64(offsetFirst%uint32(4))), "!= 0", strconv.Itoa(uint64(offsetFirst)), "<", strconv.Itoa(uint64(HeaderSizeUint*uint32(2)))}}, " ")
+        return ret, errors.New(errMsg)
+    }}
+	headerSize := HeaderSizeUint*uint32(2)
+	if offsetFirst < headerSize {{
+		errMsg := strings.Join([]string{{"OffsetsNotMatch", "{struct_name}", strconv.Itoa(uint64(offsetFirst%uint32(4))), "!= 0", strconv.Itoa(uint64(offsetFirst)), "<", strconv.Itoa(uint64(HeaderSizeUint*uint32(2)))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
-    if sliceLen < int64(offsetFirst) {{
-        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(int64(sliceLen)), "<", strconv.Itoa(int64(offsetFirst))}}, " ")
+    if sliceLen < offsetFirst {{
+        errMsg := strings.Join([]string{{"HeaderIsBroken", "{struct_name}", strconv.Itoa(uint64(sliceLen)), "<", strconv.Itoa(uint64(offsetFirst))}}, " ")
         return ret, errors.New(errMsg)
     }}
 
-    fieldCount := uint32(offsetFirst)/HeaderSizeUint - 1
-    if fieldCount < {field_count} {{
+    fieldCount := uint32(offsetFirst)/HeaderSizeUint - uint32(1)
+    if fieldCount < uint32({field_count}) {{
         return ret, errors.New("FieldCountNotMatch")
-    }} else if !compatible && fieldCount > {field_count} {{
+    }} else if !compatible && fieldCount > uint32({field_count}) {{
         return ret, errors.New("FieldCountNotMatch")
     }}
 
     offsets := make([]uint32, fieldCount)
 
-    for i := 0; i < uint64(fieldCount); i++ {{
-        offsets[i] = uint32(unpackNumber(slice[HeaderSizeUint:][int64(HeaderSizeUint)*i:]))
+    for i := uint32(0); i < fieldCount; i++ {{
+        offsets[i] = uint32(unpackNumber(slice[HeaderSizeUint:][HeaderSizeUint*i:]))
     }}
     offsets = append(offsets, totalSize)
 
     for i := 0; i < uint64(len(offsets)); i++ {{
-        if i&1 != 0 && offsets[i-1] > offsets[i] {{
+        bit := i & 1
+		c1 := bit != 0
+		c2 := offsets[i-1] > offsets[i]
+		if c1 && c2 {{
             return ret, errors.New("OffsetsNotMatch")
         }}
     }}

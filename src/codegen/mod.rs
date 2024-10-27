@@ -34,35 +34,32 @@ import (
             let primitive = String::from(
                 r#"
 type Number uint32
-const HeaderSizeUint uint32 = 4
+const HeaderSizeUint = uint32(4)
 // Byte is the primitive type
-type Byte [1]byte
+type Byte byte
 func NewByte(b byte) Byte {
-    return [1]byte{b}
-}
-func ByteDefault() Byte {
-    return [1]byte{0}
-}
-func ByteFromSliceUnchecked(slice []byte) Byte {
-    var b Byte
-    b[0] = slice[0]
     return b
 }
-func (b *Byte) AsSlice() []byte {
-    return b[0:]
+func ByteDefault() Byte {
+    return Byte(0)
+}
+func ByteFromSliceUnchecked(slice []byte) Byte {
+    return slice[0]
+}
+func (b Byte) AsSlice() []byte {
+    return []byte{b}
 }
 func ByteFromSlice(slice []byte, _compatible bool) (b Byte, e error) {
     if len(slice) != uint32(1) {
         return b, errors.New("TotalSizeNotMatch")
     }
-    b[0] = slice[0]
+    b = slice[0]
     return b, errors.None()
 }
 func unpackNumber(b []byte) Number {
     bytesBuffer := bytes.NewBuffer(b)
-    var x Number
-    binary.Read(bytesBuffer, binary.LittleEndian, &x)
-    return x
+    x := binary.ReadUint32(bytesBuffer, binary.LittleEndian)
+    return Number(x)
 }
 func packNumber(num Number) []byte {
     b := make([]byte, 4)

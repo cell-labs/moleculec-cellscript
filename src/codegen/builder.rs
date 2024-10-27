@@ -20,7 +20,7 @@ type {struct_name}Builder struct {{
 func New{struct_name}Builder() {struct_name}Builder {{
 	return {struct_name}Builder{{isNone: true, inner: {inner_type}Default()}}
 }}
-func (s *{struct_name}Builder) Set(v {inner_type}) {struct_name}Builder {{
+func (s *{struct_name}Builder) Set(v {inner_type}) *{struct_name}Builder {{
 	s.isNone = false
 	s.inner = v
 	return s
@@ -55,7 +55,7 @@ func New{struct_name}Builder() {struct_name}Builder {{
     v := {struct_name}Default()
     return {struct_name}Builder{{inner: v.ToUnion()}}
 }}
-func (s *{struct_name}Builder) Set(v {struct_name}Union) {struct_name}Builder {{
+func (s *{struct_name}Builder) Set(v {struct_name}Union) *{struct_name}Builder {{
 	s.inner = v
 	return s
 }}
@@ -111,7 +111,7 @@ func (s *{struct_name}Builder) Build() {struct_name} {{
 
         let entire_setter = format!(
             r#"
-func (s *{struct_name}Builder) Set(v [{item_count}]{inner_type}) {struct_name}Builder {{
+func (s *{struct_name}Builder) Set(v [{item_count}]{inner_type}) *{struct_name}Builder {{
 	s.inner = v
 	return s
 }}
@@ -124,7 +124,7 @@ func (s *{struct_name}Builder) Set(v [{item_count}]{inner_type}) {struct_name}Bu
             .map(|index| {
                 format!(
                     r#"
-func (s *{struct_name}Builder) Nth{index}(v {inner_type}) {struct_name}Builder {{
+func (s *{struct_name}Builder) Nth{index}(v {inner_type}) *{struct_name}Builder {{
 	s.inner[{index}] = v
 	return s
 }}
@@ -231,14 +231,14 @@ func (s *{struct_name}Builder) Build() {struct_name} {{
     }}
 
     // Calculate first offset then loop for rest items offsets
-    totalSize := HeaderSizeUint * uint32(itemCount+1)
+    totalSize := HeaderSizeUint * (itemCount+uint32(1))
     offsets := make([]uint32, 0, itemCount)
     offsets = append(offsets, totalSize)
-    for i := 1; i < itemCount; i++ {{
-        totalSize += uint32(len(s.inner[i-1].AsSlice()))
-        offsets = append(offsets, offsets[i-1]+uint32(len(s.inner[i-1].AsSlice())))
+    for i := uint32(1); i < itemCount; i++ {{
+        totalSize += uint32(len(s.inner[i-uint32(1)].AsSlice()))
+        offsets = append(offsets, offsets[i-uint32(1)]+uint32(len(s.inner[i-uint32(1)].AsSlice())))
     }}
-    totalSize += uint32(len(s.inner[itemCount-1].AsSlice()))
+    totalSize += uint32(len(s.inner[itemCount-uint32(1)].AsSlice()))
 
     b.Write(packNumber(Number(totalSize)))
 
@@ -304,7 +304,7 @@ func (s *{struct_name}Builder) Build() {struct_name} {{
 func (s *{struct_name}Builder) Build() {struct_name} {{
     var b bytes.Buffer
 
-    totalSize := HeaderSizeUint * ({field_count} + 1)
+    totalSize := HeaderSizeUint * uint32({field_count} + 1)
     offsets := make([]uint32, 0, {field_count})
 
     {fields_offset}
@@ -385,7 +385,7 @@ fn impl_setters_for_struct_or_table(struct_name: &str, inner: &[ast::FieldDecl])
             let field_type = f.typ().name().to_camel();
             format!(
                 r#"
-func (s *{struct_name}Builder) {func_name}(v {field_type}) {struct_name}Builder {{
+func (s *{struct_name}Builder) {func_name}(v {field_type}) *{struct_name}Builder {{
     s.{field_name} = v
     return s
 }}
@@ -408,14 +408,15 @@ pub(in super::super) fn impl_as_builder_for_struct_or_table(
         .iter()
         .map(|f| {
             let func_name = f.name().to_camel();
-            format!(".{func_name}(s.{func_name}())", func_name = func_name)
+            format!("ret.{filed_name} = s.{func_name}()", filed_name = f.name(), func_name = func_name)
         })
         .collect::<Vec<_>>()
-        .join("");
+        .join("\n");
     format!(
         r#"
 func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
-    ret := New{struct_name}Builder(){each_field}
+    ret := New{struct_name}Builder()
+    {each_field}
     return ret
 }}
         "#,
@@ -439,22 +440,22 @@ type {struct_name}Builder struct {{
 fn impl_setters_for_vector(struct_name: &str, inner_name: &str) -> String {
     format!(
         r#"
-func (s *{struct_name}Builder) Set(v []{inner_name}) {struct_name}Builder {{
+func (s *{struct_name}Builder) Set(v []{inner_name}) *{struct_name}Builder {{
     s.inner = v
     return s
 }}
-func (s *{struct_name}Builder) Push(v {inner_name}) {struct_name}Builder {{
+func (s *{struct_name}Builder) Push(v {inner_name}) *{struct_name}Builder {{
     s.inner = append(s.inner, v)
     return s
 }}
-func (s *{struct_name}Builder) Extend(iter []{inner_name}) {struct_name}Builder {{
-    for i:=0; i < len(iter); i++ {{
+func (s *{struct_name}Builder) Extend(iter []{inner_name}) *{struct_name}Builder {{
+    for i:=uint32(0); i < len(iter); i++ {{
         s.inner = append(s.inner, iter[i])
     }}
     return s
 }}
-func (s *{struct_name}Builder) Replace(index uint, v {inner_name}) (ret {inner_name}) {{
-    if uint(len(s.inner)) > index {{
+func (s *{struct_name}Builder) Replace(index uint64, v {inner_name}) (ret {inner_name}) {{
+    if uint64(len(s.inner)) > index {{
         a := s.inner[index]
         s.inner[index] = v
         return a
@@ -485,7 +486,7 @@ pub(in super::super) fn impl_as_builder_for_vector(struct_name: &str) -> String 
 func (s *{struct_name}) AsBuilder() {struct_name}Builder {{
     size := s.ItemCount()
     t := New{struct_name}Builder()
-    for i:=uint(0); i < size; i++ {{
+    for i:=uint64(0); i < size; i++ {{
         t.Push(s.Get(i))
     }}
     return t
