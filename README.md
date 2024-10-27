@@ -9,11 +9,11 @@ $ cargo install moleculec moleculec-cellscript
 $ moleculec --language cellscript --schema-file "your-schema-file" | gofmt > "your-cellscript-file"
 ```
 
-### Testset
+### Test
 
-all [test](./test/testset/) from [molecule](https://github.com/nervosnetwork/molecule/tree/master/test)
-
-you can run `make gen-test` to reproduce it.
+```shell
+./run.sh
+```
 
 ## License
 
